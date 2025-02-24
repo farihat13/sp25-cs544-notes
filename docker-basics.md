@@ -2,120 +2,120 @@
 
 ## Install docker
 
-[https://docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/)
+[Official Installation Guide](https://docs.docker.com/engine/install/ubuntu/)
 
+Verify after installation:  
 
-`docker run hello-world` check if docker installed successfully or not
+```bash
+docker run hello-world
+```
 
-`sudo systemctl start docker` to run docker daemon
+Check Docker version and system info:  
 
-`sudo systemctl enable docker` to ensure Docker starts when your system boots
+```bash
+docker info  
+docker version  
+```
 
-`sudo systemctl status docker` checked docker status
+Start and Enable Docker:  
 
-`docker info` or `docker version` to check if you get any response or if it shows any error messages.
+```bash
+sudo systemctl start docker     # Start Docker daemon  
+sudo systemctl enable docker    # Start Docker on system boot  
+sudo systemctl status docker    # Check Docker status  
+```
 
-**In wsl, I need to run windows docker desktop to access it from wsl.**
+Avoid using `sudo` for every Docker command:
 
-### To avoid needing to run every Docker command with root
+```bash
+sudo groupadd docker          # Create 'docker' group  
+sudo usermod -aG docker $USER # Add current user to 'docker' group  
+newgrp docker                 # Refresh group membership  
+```
 
-`sudo groupadd docker`
+### Using Docker in WSL
 
-`sudo usermod -aG docker $USER`
-
-`newgrp docker`
-
+If using **WSL**, make sure **Docker Desktop** is running on Windows to access it from WSL.
 
 ## Basic Commands
 
-### images 
+### Images
 
-`docker pull ubuntu:23.10` pulls a docker image from docker hub, 23.10 is the tag, the default tag is latest
+```bash
+docker pull ubuntu:23.10    # Pull an image from Docker Hub, tag 23.10 (default tag: latest)  
+docker images               # List all images  
+docker tag ubuntu:23.10 ubuntu:fti  # Creates a soft link `ubuntu:fti` to existing image `ubuntu:23.10`  
+docker rmi ubuntu:23.10     # Remove the image  
+```
 
-Docker Hub [https://hub.docker.com/](https://hub.docker.com/)
+### Containers
 
-`docker images` lists all the docker images
+```bash
+docker run [IMAGE] [COMMAND] # Create a container from the image, if the image does not exist locally, it first pulls it, then run the COMMAND inside that container and exit
 
-`docker tag ubuntu:23.10 ubuntu:fti` creates a soft link `ubuntu:fti` to existing image `ubuntu:23.10`
+docker run ubuntu [COMMAND] # Create a container from image `ubuntu:latest`, run the COMMAND inside that container and exit
+docker run ubnuntu echo hello
 
-`docker rmi ubuntu:23.10` deletes the image ubuntu:23.10
+docker run -it ubuntu bash  # Run in interactive mode, -i:  interactive, -t: allocates a pseudo-tty
 
+docker ps          # List running containers  
+docker ps -a       # List all (running + stopped) containers  
 
-### containers
+docker rm [CONTAINER_NAME]  # Remove a container by name  
+docker rm [ID]    # Remove a container by ID  
+docker ps -aq     # List only container IDs  
 
-`docker run ubuntu [COMMAND]` will create a container from this image `ubuntu:latest` and run the COMMAND inside that container and will exit
-e.g. `docker run ubnuntu echo hello`
+docker rm $(docker ps -qa)   # Remove all stopped containers  
+docker stop $(docker ps -aq) # Stop all running containers  
+```
 
-`docker run -it ubuntu bash`
--i means interactive
--t allocates a pseudo-tty
+Run multiple commands in a container
 
-`docker ps` lists running containers
+```bash
+docker run ubuntu sh -c "echo hello; sleep 3; echo bye"
+docker run -d ubuntu sh -c "echo hello; sleep 300; echo bye" # -d: detached mode
+```
 
-`docker ps -a` lists all containers running and stopped
+### Debugging containers
 
-`docker rm [NAME]` removes a container with the NAME
+```bash
+docker logs [CONTAINER_NAME]       # View container logs
+docker logs -f [CONTAINER_NAME]    # Follow container logs live  
+docker exec [CONTAINER_NAME] [COMMAND] # Run a new command in an existing container
+docker exec -it [CONTAINER_NAME] bash  # Open shell inside a running container  
+docker kill [CONTAINER_NAME]       # Kill a running container  
+```
 
-`docker rm [CONTAINER ID]` removes a container with the CONTAINER ID
+### System stats
 
-`docker ps -aq` only shows container IDs
-
-`docker rm $(docker ps -qa)` or `docker stop $(docker ps -aq)`
-
-`rm` for containers, 
-`rmi` for images
-
-`docker run ubuntu sh -c "echo hello; sleep 3; echo bye"` how to run multiple commands inside a container; useful for debugging
-
-`docker run -d ubuntu sh -c "echo hello; sleep 300; echo bye"` in detach mode; useful for debugging
-
-`docker logs [NAME]` checks the status of the container with NAME; useful for debugging detached containers
-
-`docker logs -f [NAME]` follow the log of detached container; useful for debugging
-
-`docker run [IMAGE] [COMMAND]` runs a new command in a new container; if the image does not exist locally, it first pulls it
-
-`docker exec [NAME] [COMMAND]` runs a new command in an existing container
-e.g., 
-    `docker exec -it optimistic_euler bash`
-    inside it, run `ps ax`
-; useful for debugging
-
-`docker kill [NAME]` kills the given container
-
-
-### system stats
-
-`docker system df` lists the resouces used by docker
-
-`docker system prune` cleans docker cache and dangling images
-
-`docker system prune -af` cleans all images without a running container
-
-
-`docker stats` shows details of the resources used by docker containers
-
-
+```bash
+docker system df            # Show disk usage by docker
+docker system prune         # Clean up docker cache and dangling images  
+docker system prune -af     # Remove all unused images  
+docker stats                # Show real-time container stats  
+```
 
 ## An example `Dockerfile`
- 
+
 ```docker
 FROM ubuntu:23.10
 RUN apt-get update
 RUN apt-get install unzip
 ```
 
-`docker build . -t demo` creates an image demo:latest from the `Dockerfile` present in the current directory
+Build and run:
 
-`docker run --name my_container demo` runs a container `my_container    ` from the image `demo`
+```bash
+docker build . -t demo   # Create an image `demo:latest` from `Dockerfile` present in the current directory
+docker run --name my_container demo  # Run a container `my_container` from the image `demo`
+```
 
-
-### `COPY`, `WORKDIR` and `CMD` 
+### Copying files, setting working dirs, and running commands in a Dockerfile
 
 `COPY [FROM_MY_COMPUTER] [TO_CONTAINER]`
-[TO_CONTAINER] = absolute path inside docker
 
-`WORKDIR [PATH]` sets the working directory for any `RUN`, `CMD`, `COPY` that follow it. If the WORKDIR doesn't exist, it will be created.
+`WORKDIR [PATH]` sets the working directory for any `RUN`, `CMD`, `COPY` that follow it.
+If the WORKDIR doesn't exist, it will be created.
 
 ```docker
 FROM ubuntu:23.10
@@ -123,12 +123,10 @@ RUN apt-get update && apt-get install -y unzip python3 python3-pip
 RUN pip3 install pandas --break-system-packages
 COPY hello.py /var/run/hello.py
 WORKDIR /var/run
-#CMD ["python3", "/var/run/hello.py"]
-CMD python3 /var/run/hello.py
+CMD ["python3", "/var/run/hello.py"]
 ```
 
 ## Running jupyterlab inside docker
-
 
 ```docker
 FROM ubuntu:23.10
@@ -139,34 +137,36 @@ RUN pip3 install tensorboard==2.14.0 --break-system-packages
 CMD python3 -m jupyterlab --no-browser --ip=0.0.0.0 --port=5440 --allow-root --NotebookApp.token=''
 ```
 
-$ `python3 -m jupyterlab --no-browser --ip=0.0.0.0 --port=5440 --allow-root --NotebookApp.token=''`
-starts a JupyterLab server, 
+Start a JupyterLab server
 
-- `--no-browser`: don't open web browser
+```bash
+python3 -m jupyterlab --no-browser --ip=0.0.0.0 --port=5440 --allow-root --NotebookApp.token=''
+```
+
+- `--no-browser`: don't auto open web browser
 - `--ip=0.0.0.0`: IP address that the JupyterLab server will listen on. Setting it to 0.0.0.0 allows it to listen on all IP addresses, which means it can accept connections from any IP address.
-- `--port=5440`: port number that JupyterLab will listen on
-- `--allow-root`: allow jupyter lab to run as the root user
+- `--port=5440`: run on port 5440
+- `--allow-root`: allow jupyter lab to run as root
 - `--NotebookApp.token=''`: no password
 
+### Running JupyterLab in my local machine using Docker
 
-### Run in my local machine
+```bash
+docker build . -t demo  # Build the image with container-name demo
+mkdir ./nb              # Create a volume for notebooks  
+docker run -d -p 5441:5440 -v ./nb:/nb demo # Run the Container  
+```
 
-1. $ `docker build . -t demo`
-2. $ `mkdir ./nb`
+- `-d`: run the container in detached mode
+- `-p 5441:5440`: map host port 5441 to container port 5440  
+- `-v ./nb:/nb`: mount host (local) `./nb` directory into `/nb` inside container, any files in the `./nb` directory of the host machine can be accessed from the `/nb` directory inside the Docker container, and vice versa.
 
-3. $ `docker run -d -p 5441:5440 -v ./nb:/nb demo`
+Verify JupyterLab is Running
 
-    - `-d` run the container in detached mode
+```bash
+docker ps   
+docker exec -it [CONTAINER_NAME] bash  # Access the running container  
+lsof -i  # list open files, -i: list only Internet network files. will show python3 running on port 5440 
+```
 
-    - `-p 5441:5440` maps port 5441 of host machine to port 5440 of container
-
-    - `-v ./nb:/nb` tells docker to create a volume that maps the `./nb` directory of my host machine to the `/nb` directory inside the Docker container. Any files in the `./nb` directory of the host machine can be accessed from the `/nb` directory inside the Docker container, and vice versa.
-
-    - to verify JupyterLab is running inside the container
-        - $ `docker ps`
-        - $ `docker exec -it [NAME] bash` (go inside the container)
-        - inside the container, 
-            - $ `lsof -i` (list open files, `-i` means only list Internet network files) will show python3 running on port 5440 
-
-4. If I go to http://localhost:5441/lab in my browser, I can access JupyterLab running inside the docker.
-
+Now, to access the JupyterLab running inside docker, open <http://localhost:5441/lab> in my browser.
