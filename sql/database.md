@@ -44,14 +44,32 @@ NoSQL databases does not have all of the ACID properties.
 
 [SQL query summary](./query.png)
 
-install and run
+### Install and run
   
 ```bash
 pip3 install SQLAlchemy mysql-connector-python
-docker run -d -m "1g" -p 127.0.0.1:3306:3306 -e MYSQL_DATABASE=cs544 -e MYSQL_ROOT_PASSWORD=abc mysql
-docker exec -it <CONTAINER> bash
+```
+
+```bash
+docker run -d --name mysql-container \
+    -m "1g" \
+    -p 127.0.0.1:3306:3306 \
+    -e MYSQL_DATABASE=cs544 \
+    -e MYSQL_ROOT_PASSWORD=abc \
+    --platform linux/amd64 \
+    mysql:oraclelinux8
+docker exec -it mysql-container bash
 mysql -p cs544
 ```
-in mysql
 
-`show tables;`
+```sql
+-- inside mysql
+show tables;
+create table users (id int, name text NOT NULL, phone text, primary key(id));
+insert into users values (1, 'John', '123-456-7890');
+select * from users;
+select * from users limit 3;
+select count(*) from users;
+select * from users where id = 1;
+select * from users where id = 1 and name = 'John';
+```
