@@ -1,96 +1,118 @@
-# Data lake
+# Map Reduce and Spark
 
-Data warehouse
-- choose storage layout
+## Data Lakes
 
-Data lakes
+Data Warehouse
+- storage and compute tightly coupled
+- optimized for structured data and SQL queries
+- predefined schema and storage layout
+- efficient, but limited flexibility 
 
-# Map Reduce
+Data Lake
+- store raw, unstructured, or semi-structured data, e.g., images, logs, videos, CSVs, Parquet
+- decouple storage and compute, e.g., HDFS + Spark
+- more scalable and flexible than a warehouse.
+- supports diverse processing engines, e.g., Spark, Hive, PyTorch
 
-- map function:  
-    - output: (key, value)
-    - calls map() for each row
-    - mappers in machines
-    - intermediate data grouped and sorted by key
-- reduce function: 
+
+## Map Reduce
+
+Phases
+1. map phase: mappers read input and emit intermediate (key, value) pairs
+2. shuffle phase: intermediate data is grouped by key and sent to reducers
+3. reduce phase: reducers aggregate values per key and write final output
+
+- mapper reducer
+    - each job runs multiple mappers and multiple reducers, depending on data size and cluster resources
+    - each mapper processes a block of input data, e.g., an HDFS chunk
+    - mappers run in parallel on multiple machines 
+    - all intermediate key value pairs grouped and sorted by key during shuffle phase
+    - each reducer handles a subset of keys
+    - each reducer writes its results into one output file
+- map() function:  
+    - output: zero or more (key, value) pairs
+    - called once per input row, e.g., if a mapper gets 10,000 rows, it calls map() 10,000 times
+- reduce() function: 
     - input: single key, all values corresponding to the key
-    - reducer
-    - each reducer produce one output file 
-- mapper reducer counts
+    - called once per key, it receives all values for that key, e.g., if a reducer handles 100 different keys, it will call reduce() 100 times
 - output files
 
-map phase
-shuffle phase
-reduce phase
 
-map reduce more flexible than SQL
+Why map reduce?
+- more flexible than SQL
 
-HiveQL - makes map reduce more flexible
+HiveQL
+- a sql-like layer on top of map reduce, makes map reduce more flexible
 
 Data locality 
-- Avoid network transfers
+- tries to schedule map tasks on the same machines where data resides to avoid network transfers
 
 Pipelines 
-- sequence of mapreduce jobs
+- sequence of mapreduce jobs, often used in real-world
 - mapreduce treats each stage seperately, hard to optimize
-- efficiency: instead of storing intermediate mapreduce results in hdfs, connect directly
-    - in spark, instead of hdfs files, intermediate data is RDD 
+    - each mapreduce job in a pipeline writes to hdfs, the next reads from it, inefficient
+    - spark improves on this: instead of hdfs files, intermediate data is RDD 
 
 
-# Spark
+## Spark
 
-## RDDs (Resilient distributed datastes)
+### RDDs (Resilient Distributed Datasets)
 like a recipe of cake, instead of the actual cake
-- **data lineage**
-- lazy eval
+
+- **data lineage**: history of transformation
+- lazy evaluation
 - immutable
 
+Two types of operations
+- transformation: create a new RDD, no execution yet
+    - parellelize(), map(), filter()
+- actions: execute ops to get actual resutls
+    - collect(), show(), toPandas()
 
+Optimization 
+- if operation known to spark, then spark optimizes (e.g, filter before mult) 
+- if custom user operations, then no optimization
 
-parellelize()
-map()
-filter()
-collect()
-two types of operations
-    - transformation: create a new RDD, no execution yet
-    - actions: execute ops to get actual resutls
+Partitions
+- what granularity should data flow?
+    - whole dataset: memory bottleneck
+    - row: overhead to process each row seperately
+    - partition: trade-off 
+- in spark, data is split into partitions.
 
-optimizations, if operation known to spark, if custom user operations, then no optimization.
-
-partitions
-what granularity should data flow?
-- whole dataset
-- row
-- partition
-
-
-Runs with spark Tasks
+Spark Tasks
 - runs on a single cpu core
 - operates on a single partiton, which is loaded entiredly in memory
+- partition count directly affects number of tasks
 
-Partition count directly affects number of tasks
-
-pros and cons of partition size
-
+Partition size trade-offs
+- too small: too many tasks.
+- too large: memory bottlenecks, poor parallelism
 
 Repartitioning
-- necessary since data might grow/shrink after transforamtion
+- useful when data size grow/shrink after transforamtion
 - might cause network traffic
-- later computation might be faster
-`.repartition(1)`
-
+- after repartitioning, later computation might be faster
+```python
+rdd = rdd.repartition(1)
+```
 
 Transformations
 - Narrow
-    - single input partition -> single output partition
+    - 1 input partition -> 1 output partition 
+    - e.g, map, filter
 - Wide
-    - multiple input partiion needed for single output partion
+    - multiple input partiions -> 1 output partion
+    - e.g., groupByKey, join
     - network IO if all input partition not in same machine
 
-Caching
-- rdd materialized cached after first compute
-`.cache()`
-`.unpersist()`
+Caching and Persistence
+- avoid re-computing expensive RDDs
+- rdd cached after first compute (materialization)
+```python
+rdd.cache()
+rdd.unpersist()
+```
 
 Spark API
 - SQL
