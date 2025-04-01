@@ -41,3 +41,9 @@ coverage.xml
 # PyCharm
 .idea/
 *.iml
+spark/nb/ghcnd-stations.txt
+spark/nb/holidays2.csv
+spark/nb/lec.ipynb
+spark/nb/lec1.ipynb
+spark/nb/lec2.ipynb
+spark/nb/starter.ipynb
