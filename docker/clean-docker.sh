@@ -1,8 +1,8 @@
 #!/bin/bash
-set -ex
+set -exuo pipefail
 
 # stop all running containers
-docker stop $(docker ps -q)
+docker stop $(docker ps -aq)
 # remove all containers
 docker rm -f $(docker ps -aq)
 # remove all images
